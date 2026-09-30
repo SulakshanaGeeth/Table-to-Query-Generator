@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174b3b">
+  <title>Rowcraft — Table to query generator</title>
+  <style>
+    :root { color-scheme: light; --paper: #f6f7f2; --surface: #fff; --ink: #20382d; --muted: #627064; --line: #e0e5dc; --green: #245f47; --green-dark: #16452f; --lime: #eaf1d5; --danger: #a33129; --mono: Consolas, "SFMono-Regular", "Liberation Mono", monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.5 "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .45; }
+    button, input, textarea { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid #7ca98b; outline-offset: 3px; }
+    button { transition: background .15s, border-color .15s, color .15s; }
+    .icon { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .site-header { border-bottom: 1px solid var(--line); background: #fafbf7; }
+    .header-inner { max-width: 1392px; padding: 21px 48px; margin: auto; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .brand { display: flex; gap: 10px; align-items: center; font-size: 21px; font-weight: 750; letter-spacing: -.8px; }
+    .brand-mark { width: 32px; height: 32px; display: grid; place-items: center; background: var(--green); color: white; border-radius: 9px; }
+    .brand-mark .icon { width: 21px; height: 21px; }
+    .header-note { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .header-note .icon { width: 15px; height: 15px; }
+    main { max-width: 1392px; padding: 43px 48px 24px; margin: auto; }
+    .intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 32px; }
+    .eyebrow { margin: 0 0 9px; color: var(--green); font-size: 10px; font-weight: 750; letter-spacing: 2px; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(30px, 4vw, 43px); font-weight: 650; line-height: 1.15; letter-spacing: -1.8px; }
+    h1 span { color: #798d71; }
+    .intro-copy { margin: 13px 0 0; color: var(--muted); font-size: 14px; }
+    .local-badge { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; border: 1px solid #dae2d0; background: #eef2e5; border-radius: 30px; padding: 7px 12px; font-size: 11px; color: #577148; margin-bottom: 3px; }
+    .dot { height: 6px; width: 6px; border-radius: 50%; background: #709457; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; box-shadow: 0 3px 9px #20382d03; min-width: 0; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 23px; }
+    .section-title { display: flex; align-items: center; gap: 10px; }
+    .step { display: grid; place-items: center; background: #f0f3e9; border: 1px solid #e8eddf; border-radius: 6px; width: 25px; height: 25px; font: 11px var(--mono); color: #6a7d54; }
+    h2 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.25px; }
+    .section-description { margin: 5px 0 0 35px; color: var(--muted); font-size: 12px; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); border-radius: 7px; padding: 8px 12px; background: white; color: var(--ink); font-size: 12px; font-weight: 600; white-space: nowrap; min-height: 35px; }
+    .button:hover:not(:disabled) { border-color: #afc1aa; background: #f4f7ee; }
+    .button .icon { width: 15px; height: 15px; }
+    .button-primary { color: white; background: var(--green); border-color: var(--green); padding: 11px 16px; }
+    .button-primary:hover:not(:disabled) { color: white; background: var(--green-dark); border-color: var(--green-dark); }
+    .button-subtle { border-color: transparent; background: transparent; color: var(--muted); font-weight: 500; }
+    .table-scroll { max-height: 368px; overflow: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); scrollbar-color: #cbd6c3 #f5f7f0; }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
+    th, td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+    th { background: #f6f8f1; height: 43px; text-align: left; position: sticky; top: 0; z-index: 1; font-weight: 500; }
+    .row-number { width: 48px; text-align: center; font: 11px var(--mono); color: #97a28e; background: #fafbf8; }
+    th.row-number { background: #f1f4eb; }
+    .row-action { width: 45px; text-align: center; background: #fdfdfa; }
+    .column-header { display: flex; align-items: center; gap: 7px; padding: 0 9px 0 15px; }
+    .column-type { font: 12px var(--mono); color: #8c9c7f; user-select: none; }
+    .column-name { width: 100%; min-width: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; padding: 5px 3px; font: 12px var(--mono); color: #465c39; }
+    .column-name:hover { background: #fff9; border-color: #d7dece; }
+    .column-name:focus { background: white; outline-offset: 0; }
+    .column-name[aria-invalid="true"] { border-color: #d78e86; background: #fff4f1; }
+    .icon-button { border: 0; background: transparent; color: #99a28f; width: 28px; height: 28px; display: inline-flex; justify-content: center; align-items: center; border-radius: 5px; padding: 0; flex-shrink: 0; }
+    .icon-button:hover:not(:disabled) { background: #faeae4; color: var(--danger); }
+    .icon-button .icon { width: 14px; height: 14px; }
+    .cell { display: block; width: 100%; height: 46px; min-height: 46px; padding: 12px 17px; border: 0; background: transparent; resize: vertical; color: var(--ink); font-size: 13px; line-height: 21px; border-radius: 0; }
+    .cell::placeholder { color: #b5bcaf; }
+    .cell:hover { background: #fcfdf9; }
+    .cell:focus { outline: 2px solid #91af7b; outline-offset: -2px; background: #fcfff5; }
+    .table-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 16px; min-height: 48px; }
+    .table-meta { color: #8b9585; font: 10px var(--mono); }
+    .paste-hint { display: flex; align-items: center; gap: 7px; color: #8b9585; font-size: 11px; }
+    .paste-hint .icon { width: 13px; height: 13px; }
+    .flow-divider { height: 37px; display: flex; justify-content: center; align-items: center; color: #a9b59c; }
+    .workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+    .editor-panel { display: flex; flex-direction: column; }
+    .editor-panel .panel-header { padding-bottom: 16px; }
+    .panel-content { padding: 0 23px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .template-shell { display: flex; background: #1e352c; border: 1px solid #1e352c; border-radius: 8px; overflow: hidden; min-height: 158px; }
+    .line-number { color: #657d6f; padding: 17px 0 0 13px; font: 11px/1.8 var(--mono); user-select: none; }
+    #template { display: block; flex: 1; min-width: 0; width: 100%; min-height: 156px; padding: 15px 16px 15px 12px; resize: vertical; background: transparent; color: #e0edc4; font: 12px/1.8 var(--mono); border: 0; tab-size: 2; }
+    #template:focus { outline: 2px solid #a4bd7a; outline-offset: -3px; border-radius: 5px; }
+    .references { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 13px 0 0; min-height: 25px; }
+    .references-label { font-size: 10px; color: #8c9685; margin-right: 3px; }
+    .reference { border: 1px solid #e0e7d5; border-radius: 5px; background: #f4f7ed; color: #66804c; padding: 3px 7px; font: 10px/1.5 var(--mono); max-width: 100%; overflow-wrap: anywhere; }
+    .reference:hover { background: #eaf1dc; border-color: #c4d3ac; }
+    .editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 23px 21px; margin-top: auto; }
+    .shortcut { color: #9aa18f; font-size: 10px; }
+    kbd { font: inherit; background: #f4f6ef; border: 1px solid #e6eadf; border-bottom-width: 2px; border-radius: 4px; padding: 3px 5px; color: #7f8a75; }
+    .count { display: inline-flex; align-items: center; gap: 5px; font: 10px var(--mono); color: #82906f; background: #f3f6eb; border-radius: 20px; padding: 5px 9px; white-space: nowrap; }
+    .count.has-results { color: #346248; background: #e8f2df; }
+    .output-shell { position: relative; min-height: 196px; display: flex; flex: 1; border: 1px solid #e5e9df; border-radius: 8px; background: #fcfdf9; overflow: hidden; }
+    #output { position: relative; display: block; width: 100%; min-height: 194px; height: 100%; padding: 16px; resize: vertical; color: #3f5841; border: 0; background: transparent; font: 12px/1.9 var(--mono); white-space: pre; }
+    #output:focus { outline-offset: -3px; }
+    .output-empty { pointer-events: none; position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #96a08a; font-size: 12px; text-align: center; padding: 20px; }
+    .output-empty .icon { width: 27px; height: 27px; color: #b4c2a5; margin-bottom: 2px; }
+    .output-empty small { color: #afb5a6; font-size: 10px; }
+    [hidden] { display: none !important; }
+    .output-note { color: #8c9683; font-size: 11px; }
+    .status { margin: 16px 0 0; padding: 11px 15px; border: 1px solid #d7e4cc; border-radius: 8px; background: #eef5e7; color: #486437; font-size: 12px; overflow-wrap: anywhere; }
+    .status.error { border-color: #edcdc6; background: #fff2ee; color: var(--danger); }
+    .status:empty { display: none; }
+    .bottom-bar { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-top: 23px; padding: 0 2px; color: #91998a; font-size: 11px; }
+    details { max-width: 550px; }
+    summary { cursor: pointer; color: #6e8061; list-style-position: inside; }
+    details p { margin: 9px 0 0; line-height: 1.8; }
+    details code { font: 10px var(--mono); color: #557640; }
+    .session-note { margin: 0; text-align: right; }
+    .site-footer { margin: 38px 0 0; border-top: 1px solid var(--line); padding-top: 17px; display: flex; justify-content: space-between; font-size: 10px; color: #a3aa9b; letter-spacing: .15px; }
+    .site-footer strong { color: #839176; font-weight: 500; }
+    .row-number, .column-type, .table-meta, .paste-hint, .references-label, .shortcut, .output-note, .bottom-bar, .site-footer, .site-footer strong { color: #68775c; }
+    .reference { color: #506b37; }
+    .count { color: #64734e; }
+    kbd { color: #61714f; }
+    .output-empty { color: #68785b; }
+    .output-empty small { color: #6c795f; }
+    .cell::placeholder { color: #75816b; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (min-width: 1600px) { main { padding-top: 55px; } .intro { margin-bottom: 38px; } }
+    @media (max-width: 800px) { .header-inner { padding: 18px 24px; } main { padding: 30px 24px 22px; } .intro { align-items: flex-start; gap: 18px; } h1 { font-size: 34px; } .local-badge { display: none; } .workspace { grid-template-columns: 1fr; gap: 18px; } .paste-hint { display: none; } .output-shell { min-height: 205px; } }
+    @media (max-width: 480px) { .header-inner { padding: 16px; } main { padding: 25px 14px 20px; } .brand { font-size: 19px; } .header-note { font-size: 10px; } .header-note .icon { display: none; } .intro-copy { font-size: 12px; max-width: 290px; } h1 { font-size: 31px; } .panel-header { padding: 16px; flex-wrap: wrap; gap: 12px; } .data-panel .panel-header { align-items: flex-start; } .data-panel .actions { margin-left: 35px; } .section-description { font-size: 11px; } .panel-content { padding: 0 16px; } .editor-panel .panel-header { padding: 16px; } .editor-footer { padding: 16px; } .bottom-bar { flex-direction: column; gap: 12px; } .session-note { text-align: left; } .shortcut { font-size: 9px; } .site-footer { margin-top: 25px; } }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  </style>
+</head>
+<body>
+  <svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 3v18M9 15h12"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16m-5-5 5 5 5-5"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 4H5v17h14V4h-4"/><rect x="9" y="2" width="6" height="5" rx="1"/><path d="M9 12h6M9 16h4"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></span>rowcraft</div>
+      <span class="header-note"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>Runs entirely in your browser</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro">
+      <div>
+        <p class="eyebrow">The little tool for repetitive queries</p>
+        <h1>Rows in. <span>Queries out.</span></h1>
+        <p class="intro-copy">Add your data, write a template, and turn every row into a statement.</p>
+      </div>
+      <span class="local-badge"><span class="dot"></span>Local by design. No uploads.</span>
+    </div>
+
+    <section class="panel data-panel" aria-labelledby="data-heading">
+      <div class="panel-header">
+        <div>
+          <div class="section-title"><span class="step">01</span><h2 id="data-heading">Your data</h2></div>
+          <p class="section-description">Type into cells or paste from a spreadsheet. Click a column name to rename it.</p>
+        </div>
+        <div class="actions">
+          <button id="load-example" class="button button-subtle" type="button">Try an example</button>
+          <button id="add-column" class="button" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add column</button>
+        </div>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Editable data table, scroll for more columns">
+        <table id="data-table"><caption class="sr-only">Enter one record per row. Column names become template references.</caption><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="table-footer">
+        <button id="add-row" class="button button-subtle" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add row</button>
+        <span class="paste-hint"><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg>Paste with Ctrl + V or ⌘ + V</span>
+        <span id="table-meta" class="table-meta">2 columns · 2 rows</span>
+      </div>
+    </section>
+
+    <div class="flow-divider" aria-hidden="true"><svg class="icon"><use href="#i-down"/></svg></div>
+
+    <div class="workspace">
+      <section class="panel editor-panel" aria-labelledby="template-heading">
+        <div class="panel-header">
+          <div>
+            <div class="section-title"><span class="step">02</span><h2 id="template-heading">Write your template</h2></div>
+            <p id="template-help" class="section-description">Use {{columnName}} wherever a row’s value should go.</p>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="template-shell">
+            <span class="line-number" aria-hidden="true">01</span>
+            <textarea id="template" aria-label="Query template" aria-describedby="template-help" spellcheck="false" autocapitalize="off" autocomplete="off">Update fruit SET {{columnB}} where {{columnA}}</textarea>
+          </div>
+          <div id="references" class="references" aria-label="Insert a column reference"></div>
+        </div>
+        <div class="editor-footer">
+          <button id="generate" type="button" class="button button-primary">Generate statements<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <span class="shortcut"><kbd id="shortcut-key">Ctrl</kbd> + <kbd>Enter</kbd></span>
+        </div>
+      </section>
+
+      <section class="panel editor-panel" aria-labelledby="output-heading">
+        <div class="panel-header">
+          <div>
+            <div class="section-title"><span class="step">03</span><h2 id="output-heading">Your output</h2></div>
+            <p class="section-description">One statement per populated row. Ready to copy.</p>
+          </div>
+          <span id="statement-count" class="count" aria-live="polite">0 statements</span>
+        </div>
+        <div class="panel-content">
+          <div class="output-shell">
+            <textarea id="output" aria-label="Generated statements" readonly spellcheck="false" wrap="off"></textarea>
+            <div id="output-empty" class="output-empty" aria-hidden="true"><svg class="icon"><use href="#i-code"/></svg><span>Your statements will appear here</span><small>A little data. One template. All your rows.</small></div>
+          </div>
+        </div>
+        <div class="editor-footer">
+          <span class="output-note">Plain text, made from your data.</span>
+          <button id="copy-output" type="button" class="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy output</button>
+        </div>
+      </section>
+    </div>
+
+    <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="bottom-bar">
+      <details>
+        <summary>A quick note on templates</summary>
+        <p>References are case-sensitive: <code>{{columnA}}</code> and <code>{{columna}}</code> are different. Blank rows are skipped; empty cells become empty text. Add any quotes or punctuation directly to your template. This tool creates text; it doesn’t run SQL.</p>
+      </details>
+      <p class="session-note">Just this session. Refreshing or closing the page clears your data.</p>
+    </div>
+    <footer class="site-footer"><span><strong>rowcraft</strong> / Less repetition, more flow.</span><span>No account. No setup.</span></footer>
+    <noscript><p class="status error">Enable JavaScript in your browser to use the table-to-query generator.</p></noscript>
+  </main>
+
+  <script id="query-core">
+    // Pure text operations, kept separate from the interface for verification.
+    function validateColumns(columns) {
+      if (!columns.length) throw new Error('Add at least one column.');
+      const names = columns.map(name => String(name).trim());
+      const seen = new Set();
+      names.forEach((name, index) => {
+        if (!name) throw new Error(`Give column ${index + 1} a name.`);
+        if (/[{}]/.test(name)) throw new Error(`Column “${name}” cannot contain braces.`);
+        if (seen.has(name)) throw new Error(`Column names must be unique. “${name}” is used more than once.`);
+        seen.add(name);
+      });
+      return names;
+    }
+
+    function generateStatements(columns, rows, template) {
+      if (!template.trim()) throw new Error('Write a query template before generating statements.');
+      const names = validateColumns(columns);
+      const positions = new Map(names.map((name, index) => [name, index]));
+      const tokenPattern = /\{\{([^{}]*)\}\}/g;
+      const unknown = new Set();
+      for (const match of template.matchAll(tokenPattern)) {
+        const name = match[1].trim();
+        if (!positions.has(name)) unknown.add(name || '(empty reference)');
+      }
+      if (unknown.size) throw new Error(`Unknown column reference: ${[...unknown].join(', ')}. Names are case-sensitive; use one of the column buttons.`);
+      const populatedRows = rows.filter(row => names.some((_, index) => String(row[index] ?? '').trim() !== ''));
+      if (!populatedRows.length) throw new Error('Add data to at least one row before generating statements.');
+      return populatedRows.map(row => template.replace(tokenPattern, (_, name) => String(row[positions.get(name.trim())] ?? '')));
+    }
+
+    function nextColumnName(existingNames) {
+      const existing = new Set(existingNames.map(name => String(name).trim()));
+      for (let index = 1; ; index++) {
+        let number = index;
+        let letters = '';
+        while (number > 0) {
+          number--;
+          letters = String.fromCharCode(65 + number % 26) + letters;
+          number = Math.floor(number / 26);
+        }
+        const name = `column${letters}`;
+        if (!existing.has(name)) return name;
+      }
+    }
+
+    function parseTsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let quoted = false;
+      let atFieldStart = true;
+      let endedWithRowBreak = false;
+      for (let index = 0; index < text.length; index++) {
+        const char = text[index];
+        endedWithRowBreak = false;
+        if (quoted) {
+          if (char === '"' && text[index + 1] === '"') { cell += '"'; index++; }
+          else if (char === '"') quoted = false;
+          else cell += char;
+        } else if (char === '"' && atFieldStart) {
+          quoted = true;
+          atFieldStart = false;
+        } else if (char === '\t') {
+          row.push(cell);
+          cell = '';
+          atFieldStart = true;
+        } else if (char === '\r' || char === '\n') {
+          if (char === '\r' && text[index + 1] === '\n') index++;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          atFieldStart = true;
+          endedWithRowBreak = true;
+        } else {
+          cell += char;
+          atFieldStart = false;
+        }
+      }
+      if (quoted) throw new Error('This paste has an unfinished quoted cell. Copy the complete cells from your spreadsheet and try again.');
+      if (!endedWithRowBreak) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+  </script>
+
+  <script id="query-interface">
+    (() => {
+      const defaultTemplate = 'Update fruit SET {{columnB}} where {{columnA}}';
+      const columns = ['columnA', 'columnB'];
+      const rows = [['', ''], ['', '']];
+      const table = document.getElementById('data-table');
+      const template = document.getElementById('template');
+      const output = document.getElementById('output');
+      const outputEmpty = document.getElementById('output-empty');
+      const count = document.getElementById('statement-count');
+      const copyButton = document.getElementById('copy-output');
+      const exampleButton = document.getElementById('load-example');
+      const status = document.getElementById('status');
+      const references = document.getElementById('references');
+      let selection = { start: 0, end: 0 };
+      let revision = 0;
+
+      function icon(name) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('icon');
+        svg.setAttribute('aria-hidden', 'true');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', `#i-${name}`);
+        svg.append(use);
+        return svg;
+      }
+
+      function showStatus(message = '', error = false) {
+        status.textContent = message;
+        status.classList.toggle('error', error);
+      }
+
+      function clearOutput() {
+        output.value = '';
+        outputEmpty.hidden = false;
+        count.textContent = '0 statements';
+        count.classList.remove('has-results');
+        copyButton.disabled = true;
+      }
+
+      function markChanged() {
+        revision++;
+        const hadOutput = output.value !== '';
+        clearOutput();
+        showStatus(hadOutput ? 'Your data or template changed. Generate again to update the output.' : '');
+        exampleButton.disabled = rows.some(row => row.some(value => value !== '')) || template.value !== defaultTemplate || columns.length !== 2 || columns[0] !== 'columnA' || columns[1] !== 'columnB';
+        exampleButton.title = exampleButton.disabled ? 'The example is available on an empty, unchanged table.' : 'Fill the empty table with Apple and Bannana.';
+      }
+
+      function updateHeaderValidity() {
+        const names = columns.map(name => name.trim());
+        table.querySelectorAll('.column-name').forEach((input, index) => {
+          const name = names[index];
+          input.setAttribute('aria-invalid', String(!name || /[{}]/.test(name) || names.indexOf(name) !== names.lastIndexOf(name)));
+        });
+      }
+
+      function renderReferences() {
+        references.replaceChildren();
+        const label = document.createElement('span');
+        label.className = 'references-label';
+        label.textContent = 'INSERT COLUMN';
+        references.append(label);
+        const names = columns.map(name => name.trim());
+        names.forEach(name => {
+          if (!name || /[{}]/.test(name) || names.indexOf(name) !== names.lastIndexOf(name)) return;
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'reference';
+          button.textContent = `{{${name}}}`;
+          button.setAttribute('aria-label', `Insert {{${name}}} into template`);
+          button.addEventListener('click', () => {
+            template.focus();
+            template.setSelectionRange(selection.start, selection.end);
+            template.setRangeText(`{{${name}}}`, selection.start, selection.end, 'end');
+            saveSelection();
+            markChanged();
+          });
+          references.append(button);
+        });
+      }
+
+      function removeButton(label, kind, index) {
+        const button = document.createElement('button');
+        button.className = 'icon-button';
+        button.type = 'button';
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.dataset.action = kind;
+        button.dataset.index = index;
+        button.disabled = kind === 'column' && columns.length === 1;
+        button.append(icon(kind === 'column' ? 'close' : 'trash'));
+        return button;
+      }
+
+      function renderTable() {
+        const header = document.createElement('tr');
+        const corner = document.createElement('th');
+        corner.className = 'row-number';
+        corner.scope = 'col';
+        corner.textContent = '#';
+        header.append(corner);
+        columns.forEach((name, index) => {
+          const th = document.createElement('th');
+          th.scope = 'col';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'column-header';
+          const type = document.createElement('span');
+          type.className = 'column-type';
+          type.textContent = 'Aa';
+          type.setAttribute('aria-hidden', 'true');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'column-name';
+          input.value = name;
+          input.dataset.column = index;
+          input.setAttribute('aria-label', `Column ${index + 1} name`);
+          input.spellcheck = false;
+          input.autocomplete = 'off';
+          wrapper.append(type, input, removeButton(`Remove column ${name || index + 1}`, 'column', index));
+          th.append(wrapper);
+          header.append(th);
+        });
+        const actionHeader = document.createElement('th');
+        actionHeader.scope = 'col';
+        actionHeader.className = 'row-action';
+        actionHeader.setAttribute('aria-label', 'Remove row');
+        header.append(actionHeader);
+        table.tHead.replaceChildren(header);
+        const body = document.createDocumentFragment();
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          const number = document.createElement('td');
+          number.className = 'row-number';
+          number.textContent = rowIndex + 1;
+          tr.append(number);
+          columns.forEach((name, columnIndex) => {
+            const td = document.createElement('td');
+            const input = document.createElement('textarea');
+            input.className = 'cell';
+            input.value = row[columnIndex] ?? '';
+            input.rows = 1;
+            input.spellcheck = false;
+            input.autocomplete = 'off';
+            input.setAttribute('aria-label', `Row ${rowIndex + 1}, ${name || `column ${columnIndex + 1}`}`);
+            input.dataset.row = rowIndex;
+            input.dataset.column = columnIndex;
+            if (rowIndex === 0) input.placeholder = 'Enter a value…';
+            td.append(input);
+            tr.append(td);
+          });
+          const action = document.createElement('td');
+          action.className = 'row-action';
+          action.append(removeButton(`Remove row ${rowIndex + 1}`, 'row', rowIndex));
+          tr.append(action);
+          body.append(tr);
+        });
+        table.tBodies[0].replaceChildren(body);
+        table.style.minWidth = `${93 + columns.length * 220}px`;
+        document.getElementById('table-meta').textContent = `${columns.length} ${columns.length === 1 ? 'column' : 'columns'} · ${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`;
+        updateHeaderValidity();
+        renderReferences();
+      }
+
+      function focusCell(row, column) {
+        table.querySelector(`.cell[data-row="${row}"][data-column="${column}"]`)?.focus();
+      }
+
+      function appendColumn() {
+        columns.push(nextColumnName(columns));
+        rows.forEach(row => row.push(''));
+      }
+
+      table.addEventListener('input', event => {
+        const input = event.target;
+        if (input.matches('.cell')) {
+          rows[Number(input.dataset.row)][Number(input.dataset.column)] = input.value;
+        } else if (input.matches('.column-name')) {
+          const column = Number(input.dataset.column);
+          columns[column] = input.value;
+          const remove = input.parentElement.querySelector('button');
+          remove.title = `Remove column ${input.value || column + 1}`;
+          remove.setAttribute('aria-label', remove.title);
+          table.querySelectorAll(`.cell[data-column="${column}"]`).forEach(cell => cell.setAttribute('aria-label', `Row ${Number(cell.dataset.row) + 1}, ${input.value || `column ${column + 1}`}`));
+          updateHeaderValidity();
+          renderReferences();
+        } else return;
+        markChanged();
+      });
+
+      table.addEventListener('click', event => {
+        const button = event.target.closest('button[data-action]');
+        if (!button || button.disabled) return;
+        const index = Number(button.dataset.index);
+        if (button.dataset.action === 'column') {
+          columns.splice(index, 1);
+          rows.forEach(row => row.splice(index, 1));
+        } else rows.splice(index, 1);
+        renderTable();
+        markChanged();
+        if (rows.length) focusCell(Math.min(index, rows.length - 1), 0);
+        else document.getElementById('add-row').focus();
+      });
+
+      table.addEventListener('paste', event => {
+        const input = event.target;
+        if (!input.matches('.cell') || !event.clipboardData) return;
+        const text = event.clipboardData.getData('text/plain');
+        if (!/[\t\r\n]/.test(text)) return; // Ordinary single-cell pastes retain native cursor behavior.
+        event.preventDefault();
+        let pasted;
+        try { pasted = parseTsv(text); }
+        catch (error) { showStatus(error.message, true); return; }
+        const startRow = Number(input.dataset.row);
+        const startColumn = Number(input.dataset.column);
+        const width = pasted.reduce((largest, row) => Math.max(largest, row.length), 0);
+        while (columns.length < startColumn + width) appendColumn();
+        while (rows.length < startRow + pasted.length) rows.push(Array(columns.length).fill(''));
+        pasted.forEach((row, rowOffset) => row.forEach((value, columnOffset) => {
+          rows[startRow + rowOffset][startColumn + columnOffset] = value;
+        }));
+        renderTable();
+        markChanged();
+        focusCell(startRow, startColumn);
+        showStatus(`Pasted ${pasted.length} ${pasted.length === 1 ? 'row' : 'rows'} across ${width} ${width === 1 ? 'column' : 'columns'}.`);
+      });
+
+      table.addEventListener('keydown', event => {
+        if (event.target.matches('.cell') && event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing) {
+          event.preventDefault();
+          const nextRow = Number(event.target.dataset.row) + 1;
+          const column = Number(event.target.dataset.column);
+          if (nextRow === rows.length) {
+            rows.push(Array(columns.length).fill(''));
+            renderTable();
+            markChanged();
+          }
+          focusCell(nextRow, column);
+        }
+      });
+
+      document.getElementById('add-column').addEventListener('click', () => {
+        appendColumn();
+        renderTable();
+        markChanged();
+        const input = table.querySelector(`.column-name[data-column="${columns.length - 1}"]`);
+        input.focus();
+        input.select();
+      });
+      document.getElementById('add-row').addEventListener('click', () => {
+        rows.push(Array(columns.length).fill(''));
+        renderTable();
+        markChanged();
+        focusCell(rows.length - 1, 0);
+      });
+
+      function saveSelection() { selection = { start: template.selectionStart, end: template.selectionEnd }; }
+      ['input', 'select', 'click', 'keyup', 'blur'].forEach(type => template.addEventListener(type, saveSelection));
+      template.addEventListener('input', markChanged);
+
+      function generate() {
+        try {
+          const statements = generateStatements(columns, rows, template.value);
+          output.value = statements.join('\n');
+          outputEmpty.hidden = true;
+          count.textContent = `${statements.length} ${statements.length === 1 ? 'statement' : 'statements'}`;
+          count.classList.add('has-results');
+          copyButton.disabled = false;
+          showStatus(`Generated ${statements.length} ${statements.length === 1 ? 'statement' : 'statements'}. Your output is ready to copy.`);
+        } catch (error) {
+          clearOutput();
+          updateHeaderValidity();
+          showStatus(error.message, true);
+        }
+      }
+      document.getElementById('generate').addEventListener('click', generate);
+      document.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !event.isComposing) {
+          event.preventDefault();
+          generate();
+        }
+      });
+      if (/Mac|iPhone|iPad/.test(navigator.platform)) document.getElementById('shortcut-key').textContent = '⌘';
+
+      copyButton.addEventListener('click', async () => {
+        const text = output.value;
+        const copiedRevision = revision;
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+          await navigator.clipboard.writeText(text);
+          if (revision === copiedRevision) showStatus('Copied to clipboard.');
+        } catch {
+          if (revision !== copiedRevision) return;
+          output.focus();
+          output.select();
+          showStatus('Automatic copying is unavailable. Your output is selected; press Ctrl+C or ⌘C to copy.');
+        }
+      });
+
+      exampleButton.addEventListener('click', () => {
+        if (exampleButton.disabled) return;
+        rows.splice(0, rows.length, ['Apple', '100'], ['Bannana', '200']);
+        renderTable();
+        markChanged();
+        generate();
+      });
+
+      function resetSession() {
+        columns.splice(0, columns.length, 'columnA', 'columnB');
+        rows.splice(0, rows.length, ['', ''], ['', '']);
+        template.value = defaultTemplate;
+        selection = { start: 0, end: 0 };
+        renderTable();
+        markChanged();
+        showStatus();
+      }
+      // Explicitly reset values restored by browser form/session restoration.
+      window.addEventListener('pageshow', resetSession);
+      resetSession();
+    })();
+  </script>
+</body>
+</html>
